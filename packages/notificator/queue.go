@@ -21,8 +21,9 @@ import (
 )
 
 type Queue struct {
-	Accounts []*Accounts
-	Roles    []*Roles
+	Accounts     []*Accounts
+	Roles        []*Roles
+	TableChanges []*TableChanges
 }
 
 type Accounts struct {
@@ -35,8 +36,14 @@ type Roles struct {
 	List      []int64
 }
 
+type TableChanges struct {
+	Table   string
+	Type    string
+	Columns map[string]string
+}
+
 func (q *Queue) Size() int {
-	return len(q.Accounts) + len(q.Roles)
+	return len(q.Accounts) + len(q.Roles) + len(q.TableChanges)
 }
 
 func (q *Queue) AddAccounts(ecosystem int64, list ...string) {
@@ -53,6 +60,14 @@ func (q *Queue) AddRoles(ecosystem int64, list ...int64) {
 	})
 }
 
+func (q *Queue) AddTableChanges(table string, opType string, columns map[string]string) {
+	q.TableChanges = append(q.TableChanges, &TableChanges{
+		Table:   table,
+		Type:    opType,
+		Columns: columns,
+	})
+}
+
 func (q *Queue) Send() {
 	for _, a := range q.Accounts {
 		UpdateNotifications(a.Ecosystem, a.List)
@@ -60,6 +75,10 @@ func (q *Queue) Send() {
 
 	for _, r := range q.Roles {
 		UpdateRolesNotifications(r.Ecosystem, r.List)
+	}
+
+	for _, r := range q.TableChanges {
+		SendTableStats(r.Table, r.Type, r.Columns)
 	}
 }
 

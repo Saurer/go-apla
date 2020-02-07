@@ -135,6 +135,8 @@ func (sc *SmartContract) selectiveLoggingAndUpd(fields []string, ivalues []inter
 			return 0, "", err
 		}
 		sqlBuilder.SetTableID(logData[`id`])
+
+		sc.Notifications.AddTableChanges(sqlBuilder.Table, "update", logData)
 	} else {
 
 		insertQuery, err := sqlBuilder.GetSQLInsertQuery(model.NextIDGetter{Tx: sc.DbTransaction})
@@ -155,6 +157,9 @@ func (sc *SmartContract) selectiveLoggingAndUpd(fields []string, ivalues []inter
 			logger.WithFields(log.Fields{"type": consts.DBError, "error": err, "query": insertQuery}).Error("executing insert query")
 			return 0, "", err
 		}
+
+		// TODO: logData is empty
+		sc.Notifications.AddTableChanges(sqlBuilder.Table, "insert", logData)
 	}
 
 	if generalRollback {

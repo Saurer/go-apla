@@ -89,9 +89,14 @@ func GetJWTCent(userID, expire int64) (string, string, error) {
 
 // Write is publishing data to server
 func Write(account string, data string) error {
+	return WritePublic("client"+account, data)
+}
+
+// WritePublic sends data to public websocket channel
+func WritePublic(channel string, data string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), centrifugoTimeout)
 	defer cancel()
-	return publisher.Publish(ctx, "client"+account, []byte(data))
+	return publisher.Publish(ctx, channel, []byte(data))
 }
 
 // GetStats returns Stats

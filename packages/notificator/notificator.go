@@ -33,6 +33,11 @@ type notificationRecord struct {
 	RecordsCount int64  `json:"count"`
 }
 
+type tableChangeRecord struct {
+	Type    string            `json:"type"`
+	Columns map[string]string `json:"columns"`
+}
+
 // UpdateNotifications send stats about unreaded messages to centrifugo for ecosystem
 func UpdateNotifications(ecosystemID int64, accounts []string) {
 	notificationsStats, err := getEcosystemNotificationStats(ecosystemID, accounts)
@@ -49,6 +54,22 @@ func UpdateNotifications(ecosystemID int64, accounts []string) {
 func UpdateRolesNotifications(ecosystemID int64, roles []int64) {
 	members, _ := model.GetRoleMembers(nil, ecosystemID, roles)
 	UpdateNotifications(ecosystemID, members)
+}
+
+// SendTableStats broadcasts changes made to a table
+func SendTableStats(table string, opType string, columns map[string]string) {
+	rawStats, err := json.Marshal(tableChangeRecord{
+		Type:    opType,
+		Columns: columns,
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"type": consts.JSONMarshallError, "error": err}).Error("table statistic")
+	}
+
+	err = publisher.WritePublic("table_"+table, string(rawStats))
+	if err != nil {
+		log.WithFields(log.Fields{"type": consts.IOError, "error": err}).Error("writing to centrifugo")
+	}
 }
 
 func getEcosystemNotificationStats(ecosystemID int64, users []string) (map[string]*[]notificationRecord, error) {

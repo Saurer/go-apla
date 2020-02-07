@@ -36,7 +36,7 @@ type dbFindResult struct {
 
 type dbfindForm struct {
 	ID      int64  `schema:"id"`
-	Order   string `schema:"order"`
+	Limit   int64  `schema:"limit"`
 	Columns string `schema:"columns"`
 	paginatorForm
 }
@@ -94,8 +94,17 @@ func getDbFindHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	whereClause := types.LoadMap(formWhere)
 
+	var formOrder map[string]interface{}
+	if orderValue := r.FormValue("order"); 0 < len(orderValue) {
+		if err := json.Unmarshal([]byte(r.FormValue("order")), &formOrder); err != nil {
+			errorResponse(w, err, http.StatusBadRequest)
+			return
+		}
+	}
+	orderClause := types.LoadMap(formOrder)
+
 	// Perform the actual request
-	_, ret, err := smart.DBSelect(&sc, tableName, form.Columns, form.ID, form.Order, form.Offset, form.Limit, whereClause)
+	_, ret, err := smart.DBSelect(&sc, tableName, form.Columns, form.ID, orderClause, form.Offset, form.Limit, whereClause)
 	if err != nil {
 		errorResponse(w, err)
 		return
